@@ -1,0 +1,87 @@
+import linecache
+
+# Get all valid course code majors from validCourses.txt
+def getValidCourseCodes():
+    with open("validCourses.txt") as fp:  
+        line = fp.readline()
+
+        valid_courses = []
+        invalid_courses = []
+
+        while line:
+            #Individually add valid codes from each line to valid_courses
+            for i in getCourseCodes(line):
+                valid_courses.append(i)
+
+            line = fp.readline()
+
+    return valid_courses
+
+def getValidCourseNums(code):
+    valid_courses = []
+    invalid_courses = []
+
+    file = "validCourses.txt"
+    index = findLine(code, file)
+    line = linecache.getline(file, index+1)
+
+    i = line.find(code)
+    if i != -1:
+        #'All' course nums valid
+        if line[i-4:i-1] == "all":
+            valid_courses.append("all")
+        #Get invalid nums
+        if line[i+5:i+11] == "except":
+            print("woo")
+
+
+    return [valid_courses, invalid_courses]
+
+def findLine(word, file):
+    lineNum = 0
+    with open(file) as fp:  
+        line = fp.readline()
+        while line:
+            if line.find(word) != -1:
+                return lineNum
+            line = fp.readline()
+            lineNum += 1
+
+
+#Scrape all 4 letter course codes from a line, return an array
+def getCourseCodes(line):
+    codes = []
+    i = 0
+    while i < len(line):
+        if (line[i-4].isupper() and line[i-1].isupper()) and (line[i] == ' ' or line[i] == ')'):
+            codes.append(line[i-4:i])
+        i += 1
+    return codes
+
+def getCourseNums(linenum):
+    nums = []
+    return nums
+
+def parseCourses():
+    with open("Courses.txt") as fp:  
+        line = fp.readline()
+        cnt = 1
+
+        course_titles = []
+
+        while line:
+            #Grab course titles
+            if line[5].isnumeric():
+                course_titles.append(line)
+            line = fp.readline()
+            cnt += 1
+
+def main():
+    getValidCourseNums("HIST")
+
+
+    
+if __name__ == "__main__":
+    main()
+        
+

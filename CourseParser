@@ -1,0 +1,227 @@
+import linecache
+
+# Get all valid course code majors from validCourses.txt
+def getValidCourseCodes():
+    with open("validCourses.txt") as fp:  
+        line = fp.readline()
+        valid_courses = []
+
+        while line:
+            #Individually add valid codes from each line to valid_courses
+            try:
+                for i in getCourseCodes(line):
+                    valid_courses.append(i)
+            except:
+                pass
+            line = fp.readline()
+
+    #remove duplicates
+    valid_courses = list(dict.fromkeys(valid_courses))
+
+    return valid_courses
+
+#Get list of valid and invalid course nums for a certain course code
+def getValidCourseNums(code):
+    valid_courses = []
+    invalid_courses = []
+    
+    file = "validCourses.txt"
+    index = findLine(code, file)
+    line = linecache.getline(file, index+1)
+
+    i = line.find(code)
+    if i != -1:
+        #'All' course nums valid
+        if line.find("all") != -1 or line.find("only") != -1:
+            if i - line.find("all") < 5 or line.find("all") - i < 5:
+                valid_courses.append("all")
+        #Get invalid nums
+        if line.find("except") != -1:
+            for num in getCourseNums(line, i+11):
+                invalid_courses.append(num)
+        #Get specific valid nums
+        else:
+            for num in getCourseNums(line, i+5):
+                valid_courses.append(num)
+
+    return [valid_courses, invalid_courses]
+
+
+#Find line number of given word in file
+def findLine(word, file):
+    lineNum = 0
+    with open(file) as fp:  
+        line = fp.readline()
+        while line:
+            if line.find(word) != -1:
+                return lineNum
+            line = fp.readline()
+            lineNum += 1
+
+#Scrape all 4 letter course codes from a line, return an array
+def getCourseCodes(line):
+    codes = []
+    i = 0
+    while i < len(line):
+        if (line[i-4].isupper() and line[i-1].isupper()):
+            if ((line[i] == ' ' or line[i] == ')') or (line[i] == ',' or (line[i] == ';'or line[i] == '.'))):
+                if line[i-5] == ' ' or line[i-5] == '(':
+                    codes.append(line[i-4:i])
+        i += 1
+    return codes
+
+#Scrape 3 digit codes from start point on line
+def getCourseNums(line, start):
+    nums = []
+    i = start
+    while i < len(line):
+        if line[i].isnumeric() and line[i-1] == ' ':
+            nums.append(line[i:i+3])
+        if line[i] == ';' or line[i] == ')':
+            return nums
+        i += 1
+    return nums
+
+def assembleCourses():
+    codes = getValidCourseCodes()
+    c = []
+    for code in codes:
+        course = {
+            "code": code,
+            "valid" : getValidCourseNums(code)[0],
+            "invalid" : getValidCourseNums(code)[1]
+        }
+        c.append(course)
+    return c
+
+#Return last line number of course description given title line number
+def selectCourseDefinitionLines(start):
+    with open("Courses.txt") as fp:
+        for x in range(start):
+            line = fp.readline()
+        line = fp.readline()
+        i = start + 1
+        while line:
+            if isTitleLine(line):
+                return i - 1
+            line = fp.readline()
+            i += 1
+
+def isValidCode(code):
+    try:
+        vc = getValidCourseCodes()
+    except:
+        vc = []
+    for c in vc:
+        if code == c:
+            return True
+    return False
+
+def isTitleLine(line):
+    i = 0
+    while i < len(line):
+        if i == 7:
+            if line[5].isnumeric() and line[7].isnumeric():
+                if line[13:16] != 'and':
+                    return True
+        i += 1
+    return False
+
+def isPrereqLine(line):
+    i = 0
+    while i < len(line):
+        if i == 12:
+            if line[0:12] == "PREREQUISITE":
+                return True
+            else:
+                return False
+        i += 1
+    return False
+
+def isNoteLine(line):
+    i = 0
+    while i < len(line):
+        if i == 4:
+            if line[0:4] == "NOTE":
+                return True
+            else:
+                return False
+        i += 1
+    return False  
+
+def wasThereNoteLine(lines,index):
+    for y in range(index,selectCourseDefinitionLines(index+1)):
+        if lines[y].find("NOTE") != -1:
+            return True
+    return False
+
+
+def doIQualify(titleLine):
+    with open("Courses.txt") as fp:
+        for x in range(titleLine):
+            line = fp.readline()
+        line = fp.readline()
+        while line:
+            if line.find("only at the Bader International") != -1:
+                return False
+            if line.find("and permission") != -1:
+                return False 
+            if line.find("Priority will be given ") != -1:
+                return False 
+            if isNoteLine(line):
+                if line.find("offered online") == -1:
+                    return False     
+            if isPrereqLine(line):
+                if getCourseCodes(line):
+                    return False
+                if line.find("plan") == -1 and line.find("Plan") == -1:
+                    return True 
+                elif line.find("Applied Science") != -1:
+                    return True
+            
+            line = fp.readline()
+            if isTitleLine(line):
+                return True
+        return True
+
+
+def isValidNum(code, num):
+    try:
+        vn = getValidCourseNums(code)[0]
+        ivn = getValidCourseNums(code)[1]
+    except:
+        vn = []
+        ivn = []
+    for n in ivn:
+        if num == n:
+            return False
+    for n in vn:
+        if n == "all":
+            return True
+        if num == n:
+            return True
+    return False
+
+def parseCourses():
+    input = open("Courses.txt", "r")
+    lines = input.readlines()
+    input.close()
+    output = open("GoodCourses.txt", "w+")
+    for index, line in enumerate(lines):
+        if isTitleLine(line) and line.find("6.0")  == -1:
+            if isValidCode(line[0:4]) and isValidNum(line[0:4], line[5:8]):
+                if doIQualify(index): 
+                    if wasThereNoteLine(lines,index): 
+                        for x in range(index,selectCourseDefinitionLines(index+1)):
+                           output.write(lines[x])
+                        output.write("\n")
+        
+    output.close
+
+def main():
+    parseCourses()
+
+
+if __name__ == "__main__":
+    main()
+        
